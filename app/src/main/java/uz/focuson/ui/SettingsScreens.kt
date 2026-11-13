@@ -255,6 +255,11 @@ fun SettingsScreen(onPickApps: (BlockMode) -> Unit, onPermissions: () -> Unit, o
                 "Shu vaqtgacha o'simlik ekmagan bo'lsangiz eslatadi.",
                 s.reminder, true,
             ) { v -> Store.updateSettings { it.copy(reminder = v) }; Reminder.schedule(context) }
+            SwitchRow(
+                "Haftalik hisobot",
+                "Har yakshanba soat 20:00 da hafta yakuni haqida bildirishnoma.",
+                s.weeklyReport, true,
+            ) { v -> Store.updateSettings { it.copy(weeklyReport = v) }; uz.focuson.focus.WeeklyAlarm.schedule(context) }
             if (s.reminder) NavRow("Vaqti", "%02d:%02d".format(s.reminderMinute / 60, s.reminderMinute % 60)) { pickTime = true }
         }
         Section("Boshqa") {

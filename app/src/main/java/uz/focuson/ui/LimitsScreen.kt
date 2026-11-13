@@ -67,9 +67,11 @@ private val limitChoices = listOf(15, 30, 45, 60, 90, 120, 180, 240)
 fun LimitsScreen(onOpenPermissions: () -> Unit) {
     val context = LocalContext.current
     val limits by Store.limits.collectAsStateWithLifecycle()
+    val pending by Store.pendingLimits.collectAsStateWithLifecycle()
+    var notice by remember { mutableStateOf<String?>(null) }
     val settings by Store.settings.collectAsStateWithLifecycle()
     var tick by remember { mutableIntStateOf(0) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { Store.applyDueLimits(); tick++ }
     LaunchedEffect(Unit) { while (true) { delay(30_000); tick++ } }
     val access = remember(tick) { UsageTracker.hasAccess(context) }
     val a11y = remember(tick) { Blocking.isServiceEnabled(context) }
@@ -90,7 +92,8 @@ fun LimitsScreen(onOpenPermissions: () -> Unit) {
             modifier = Modifier.padding(start = 20.dp, top = 10.dp),
         )
         Text(
-            "Ilovaga kunlik vaqt qo'ying. Vaqt tugasa, ilova ertagacha yopiladi. Kerak bo'lsa 5 daqiqaga ochsa bo'ladi.",
+            "Ilovaga kunlik vaqt qo'ying. Vaqt tugasa, ilova ertagacha yopiladi. Kerak bo'lsa 5 daqiqaga ochsa bo'ladi. " +
+                "Limitni kamaytirish darhol ishlaydi, oshirish yoki olib tashlash esa ertadan.",
             color = C.muted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
 
@@ -132,6 +135,12 @@ fun LimitsScreen(onOpenPermissions: () -> Unit) {
                             else "Bugun: ${formatShort(used)} / ${formatShort(limitMs)} · ${formatShort(limitMs - used)} qoldi",
                             color = if (over) C.danger else C.muted, fontSize = 13.sp,
                         )
+                        pending[pkg]?.let { p ->
+                            Text(
+                                if (p.minutes == null) "Ertadan limit olib tashlanadi" else "Ertadan: ${formatShort(p.minutes * 60_000L)}",
+                                color = C.accent, fontSize = 12.sp,
+                            )
+                        }
                         Spacer(Modifier.height(5.dp))
                         LinearProgressIndicator(
                             progress = { part },
@@ -200,11 +209,25 @@ fun LimitsScreen(onOpenPermissions: () -> Unit) {
         LimitDialog(
             title = byPkg[pkg]?.label ?: AppLimits.label(context, pkg),
             current = limits[pkg],
-            onPick = { m -> Store.setLimit(pkg, m); editing = null },
+            pending = pending[pkg],
+            onPick = { m ->
+                val now = Store.requestLimit(pkg, m)
+                editing = null
+                if (!now) notice = if (m == null) "Limit ertadan olib tashlanadi. Bugun hozirgi limit ishlayveradi."
+                else "Yangi limit (${formatShort(m * 60_000L)}) ertadan boshlanadi. Bugun hozirgi limit ishlayveradi."
+            },
+            onCancelPending = { Store.cancelPending(pkg); editing = null },
             onDismiss = { editing = null },
         )
     }
     if (adding) AppChooser(apps.filter { it.pkg !in Blocking.alwaysOpen(context) }, usage, onPick = { adding = false; editing = it }, onDismiss = { adding = false })
+    notice?.let { n ->
+        AlertDialog(
+            onDismissRequest = { notice = null },
+            text = { Text(n) },
+            confirmButton = { TextButton(onClick = { notice = null }) { Text("Tushunarli") } },
+        )
+    }
     if (pickPasses) AlertDialog(
         onDismissRequest = { pickPasses = false },
         title = { Text("Kuniga necha marta 5 daqiqa?") },
@@ -255,13 +278,23 @@ private fun AppIcon(app: AppInfo?) {
 }
 
 @Composable
-private fun LimitDialog(title: String, current: Int?, onPick: (Int?) -> Unit, onDismiss: () -> Unit) {
+private fun LimitDialog(
+    title: String, current: Int?, pending: Store.PendingLimit?,
+    onPick: (Int?) -> Unit, onCancelPending: () -> Unit, onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column {
                 Text("Kuniga qancha vaqt ochiq bo'lsin?", color = C.muted, fontSize = 14.sp)
+                if (current != null) Text(
+                    "Kamroq vaqt darhol ishlaydi. Ko'proq vaqt yoki olib tashlash ertadan.",
+                    color = C.muted, fontSize = 12.sp,
+                )
+                if (pending != null) TextButton(onClick = onCancelPending) {
+                    Text("Ertangi o'zgarishni bekor qilish", color = C.primary)
+                }
                 Spacer(Modifier.height(6.dp))
                 limitChoices.forEach { m ->
                     Row(

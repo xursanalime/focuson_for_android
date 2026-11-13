@@ -111,5 +111,6 @@ class BootReceiver : BroadcastReceiver() {
         FocusController.check(context)
         if (Store.active.value != null) runCatching { FocusService.start(context) }
         Reminder.schedule(context)
+        WeeklyAlarm.schedule(context)
     }
 }

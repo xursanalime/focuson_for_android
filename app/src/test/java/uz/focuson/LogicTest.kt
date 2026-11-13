@@ -170,4 +170,43 @@ class LogicTest {
         // an expired pass does not
         assertEquals(Over, L.state(70 * m, 60 * m, 500, 1000))
     }
+
+    @Test fun limitChangesThatLoosenWaitForTomorrow() {
+        val L = uz.focuson.data.LimitChange
+        assertEquals(true, L.appliesNow(null, 60))   // new limit: now
+        assertEquals(true, L.appliesNow(60, 30))     // stricter: now
+        assertEquals(true, L.appliesNow(60, 60))
+        assertEquals(false, L.appliesNow(60, 90))    // looser: tomorrow
+        assertEquals(false, L.appliesNow(60, null))  // remove: tomorrow
+    }
+
+    @Test fun weeklyReport() {
+        val zone = java.time.ZoneOffset.UTC
+        val mon = java.time.LocalDate.of(2026, 11, 9)
+        fun at(d: java.time.LocalDate, h: Int) = d.atTime(h, 0).toInstant(zone).toEpochMilli()
+        val m = 60_000L
+        val recs = listOf(
+            uz.focuson.data.SessionRecord(at(mon, 9), at(mon, 9) + 30 * m, 30 * m, "eman", "ielts", true),
+            uz.focuson.data.SessionRecord(at(mon.plusDays(3), 9), at(mon.plusDays(3), 9) + 90 * m, 90 * m, "eman", "ielts", true),
+            uz.focuson.data.SessionRecord(at(mon.plusDays(3), 14), at(mon.plusDays(3), 14) + 5 * m, 25 * m, "eman", "ish", false),
+            // last week: 60 min
+            uz.focuson.data.SessionRecord(at(mon.minusDays(3), 9), at(mon.minusDays(3), 9) + 60 * m, 60 * m, "eman", "ish", true),
+        )
+        val r = uz.focuson.data.WeeklyReport.build(recs, mon.plusDays(6), zone)
+        assertEquals(120 * m, r.focusedMs)
+        assertEquals(2, r.grown)
+        assertEquals(1, r.withered)
+        assertEquals("ielts", r.topTagId)
+        assertEquals(mon.plusDays(3), r.bestDay)
+        assertEquals(2, r.activeDays)
+        assertEquals(100, r.changePercent)
+    }
+
+    @Test fun weeklyAlarmIsNextSundayEvening() {
+        val W = uz.focuson.focus.WeeklyAlarm
+        val fri = java.time.LocalDateTime.of(2026, 11, 13, 21, 0)
+        assertEquals(java.time.LocalDateTime.of(2026, 11, 15, 20, 0), W.next(fri))
+        val sunLate = java.time.LocalDateTime.of(2026, 11, 15, 20, 30)
+        assertEquals(java.time.LocalDateTime.of(2026, 11, 22, 20, 0), W.next(sunLate))
+    }
 }

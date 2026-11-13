@@ -68,6 +68,8 @@ object Store {
         _bestStreak.value = prefs.getInt("bestStreak", 0)
         _breakUntil.value = prefs.getLong("breakUntil", 0L)
         _limits.value = loadLimits()
+        _pending.value = loadPending()
+        applyDueLimits()
         updateStreak()
     }
 
@@ -135,6 +137,56 @@ object Store {
         _limits.value = m
         prefs.edit().putString("limits", JSONObject(m as Map<*, *>).toString()).apply()
     }
+
+    /** A looser limit (higher or removed) waiting for tomorrow. minutes = null means "remove". */
+    data class PendingLimit(val minutes: Int?, val from: java.time.LocalDate)
+
+    private val _pending = MutableStateFlow<Map<String, PendingLimit>>(emptyMap())
+    val pendingLimits: StateFlow<Map<String, PendingLimit>> = _pending
+
+    /**
+     * Change a limit the hard-to-cheat way: a new or stricter limit works right away;
+     * a higher limit or removing it only starts tomorrow. Returns true if applied now.
+     */
+    @Synchronized
+    fun requestLimit(pkg: String, minutes: Int?, today: java.time.LocalDate = java.time.LocalDate.now()): Boolean {
+        val cur = _limits.value[pkg]
+        val now = LimitChange.appliesNow(cur, minutes)
+        if (now) {
+            setLimit(pkg, minutes)
+            savePending(_pending.value - pkg)
+        } else {
+            savePending(_pending.value + (pkg to PendingLimit(minutes, today.plusDays(1))))
+        }
+        return now
+    }
+
+    @Synchronized
+    fun cancelPending(pkg: String) = savePending(_pending.value - pkg)
+
+    /** Puts waiting changes into effect once their day has come. */
+    @Synchronized
+    fun applyDueLimits(today: java.time.LocalDate = java.time.LocalDate.now()) {
+        val due = _pending.value.filter { !it.value.from.isAfter(today) }
+        if (due.isEmpty()) return
+        due.forEach { (pkg, p) -> setLimit(pkg, p.minutes) }
+        savePending(_pending.value - due.keys)
+    }
+
+    private fun savePending(m: Map<String, PendingLimit>) {
+        _pending.value = m
+        val o = JSONObject()
+        m.forEach { (pkg, p) -> o.put(pkg, JSONObject().put("m", p.minutes ?: -1).put("from", p.from.toString())) }
+        prefs.edit().putString("pendingLimits", o.toString()).apply()
+    }
+
+    private fun loadPending(): Map<String, PendingLimit> = runCatching {
+        val o = JSONObject(prefs.getString("pendingLimits", "{}")!!)
+        o.keys().asSequence().associateWith { k ->
+            val p = o.getJSONObject(k)
+            PendingLimit(p.getInt("m").takeIf { it >= 0 }, java.time.LocalDate.parse(p.getString("from")))
+        }
+    }.getOrDefault(emptyMap())
 
     private fun loadLimits(): Map<String, Int> = runCatching {
         val o = JSONObject(prefs.getString("limits", "{}")!!)
@@ -232,6 +284,7 @@ object Store {
             .putInt("dailyGoalMinutes", s.dailyGoalMinutes)
             .putString("themeMode", s.themeMode)
             .putInt("graceCount", s.graceCount)
+            .putBoolean("weeklyReport", s.weeklyReport)
             .apply()
     }
 
@@ -258,6 +311,7 @@ object Store {
             dailyGoalMinutes = prefs.getInt("dailyGoalMinutes", d.dailyGoalMinutes),
             themeMode = prefs.getString("themeMode", d.themeMode)!!,
             graceCount = prefs.getInt("graceCount", d.graceCount),
+            weeklyReport = prefs.getBoolean("weeklyReport", d.weeklyReport),
         )
     }
 
@@ -288,5 +342,15 @@ object Store {
         _owned.value = Catalog.freeIds + owned
         prefs.edit().putInt("coins", _coins.value).putStringSet("owned", owned).apply()
         updateStreak()
+    }
+}
+
+/** Which limit changes take effect immediately (pure rule, testable). */
+object LimitChange {
+    /** New or stricter limits apply now; raising or removing waits for tomorrow. */
+    fun appliesNow(current: Int?, wanted: Int?): Boolean = when {
+        current == null -> true
+        wanted == null -> false
+        else -> wanted <= current
     }
 }

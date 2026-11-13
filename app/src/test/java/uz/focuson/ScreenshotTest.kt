@@ -159,6 +159,24 @@ class ScreenshotTest {
         org.junit.Assert.assertEquals(2, A.passesLeft("y"))
     }
 
+    @Test fun limitRaiseWaitsForTomorrow() {
+        val st = uz.focuson.data.Store
+        val today = java.time.LocalDate.of(2026, 11, 13)
+        org.junit.Assert.assertTrue(st.requestLimit("app.a", 60, today))
+        org.junit.Assert.assertFalse(st.requestLimit("app.a", 120, today))
+        org.junit.Assert.assertEquals(60, st.limits.value["app.a"])
+        st.applyDueLimits(today)
+        org.junit.Assert.assertEquals(60, st.limits.value["app.a"])
+        st.applyDueLimits(today.plusDays(1))
+        org.junit.Assert.assertEquals(120, st.limits.value["app.a"])
+        // removing waits too, and a stricter limit cancels the waiting change
+        org.junit.Assert.assertFalse(st.requestLimit("app.a", null, today.plusDays(1)))
+        org.junit.Assert.assertTrue(st.requestLimit("app.a", 30, today.plusDays(1)))
+        org.junit.Assert.assertEquals(30, st.limits.value["app.a"])
+        org.junit.Assert.assertNull(st.pendingLimits.value["app.a"])
+        st.setLimit("app.a", null)
+    }
+
     @Test fun settings() = shot("settings") { SettingsScreen({}, {}, {}) }
 
     @Test fun shop() = shot("shop") { uz.focuson.ui.ShopScreen() }

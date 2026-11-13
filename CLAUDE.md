@@ -67,6 +67,13 @@ never copy Forest's name, icons, plant art or screens.
   runs out and then shows `BlockActivity` with MODE_LIMIT. After the limit: `Settings.graceCount` passes
   per app per day (default 1), each 5 minutes (`Store.grant`, reset at midnight). Works with or without a
   focus session; focus blocking wins when both apply. `adb logcat | grep FocusOnLimits` shows decisions.
+- Limits are hard to cheat: `Store.requestLimit` applies new/stricter limits now; raising or removing
+  waits until tomorrow (`Store.pendingLimits`, applied by `applyDueLimits`). Rule in `LimitChange`.
+- Weekly report (`focus/Weekly.kt`): Sunday 20:00 notification (`WeeklyAlarm`, `Settings.weeklyReport`),
+  numbers from `data/WeeklyReport`; tapping it opens Bog' on the week, which also shows the report card.
+- Git: repo https://github.com/xursanalime/focuson_for_android (PUBLIC). The keystore is gitignored and
+  must never be committed. Commit author uses the GitHub noreply email (repo-local git config).
+  Push with `git -c 'credential.helper=!gh auth git-credential' push`.
 - Withered plants can be cleared from the garden for `Store.CLEAR_PRICE` (20) coins each (removed from history too).
 
 ## Testing on the phone

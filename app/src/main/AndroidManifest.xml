@@ -94,6 +94,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".focus.WeeklyReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".widget.FocusWidget"
             android:exported="false"
             android:label="Focus On">

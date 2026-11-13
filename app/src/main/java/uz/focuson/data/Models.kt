@@ -175,6 +175,8 @@ data class Settings(
     val themeMode: String = "system",
     /** App limits: how many 5-minute passes per app per day after the limit is reached. */
     val graceCount: Int = 1,
+    /** Sunday-evening summary notification. */
+    val weeklyReport: Boolean = true,
 )
 
 /** Today's 5-minute passes for one app. */

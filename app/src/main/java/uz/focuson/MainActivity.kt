@@ -54,6 +54,7 @@ class FocusApp : Application() {
         Store.init(this)
         Notifications.createChannels(this)
         Reminder.schedule(this)
+        uz.focuson.focus.WeeklyAlarm.schedule(this)
         Thread { uz.focuson.data.AutoBackup.maybeRun(this) }.start()
     }
 }
@@ -73,8 +74,23 @@ private sealed interface Sub {
 }
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_OPEN = "open"
+        const val OPEN_WEEK = "garden_week"
+    }
+
+    private fun handleOpen(intent: android.content.Intent?) {
+        if (intent?.getStringExtra(EXTRA_OPEN) == OPEN_WEEK) uz.focuson.ui.NavRequest.gardenWeek = true
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleOpen(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleOpen(intent)
         enableEdgeToEdge()
         setContent {
             val mode by Store.settings.collectAsStateWithLifecycle()
@@ -92,6 +108,9 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 var tab by remember { mutableStateOf(Tab.FOCUS) }
                 var sub by remember { mutableStateOf<Sub?>(null) }
+                androidx.compose.runtime.LaunchedEffect(uz.focuson.ui.NavRequest.gardenWeek) {
+                    if (uz.focuson.ui.NavRequest.gardenWeek) { tab = Tab.GARDEN; sub = null }
+                }
                 var tick by remember { mutableIntStateOf(0) }
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
                 val settings by Store.settings.collectAsStateWithLifecycle()

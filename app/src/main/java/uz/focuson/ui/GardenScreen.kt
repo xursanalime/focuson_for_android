@@ -72,6 +72,12 @@ fun GardenScreen() {
     val zone = remember { ZoneId.systemDefault() }
     val today = remember { LocalDate.now(zone) }
     var period by rememberSaveable { mutableStateOf(Period.DAY) }
+    androidx.compose.runtime.LaunchedEffect(NavRequest.gardenWeek) {
+        if (NavRequest.gardenWeek) {
+            period = Period.WEEK
+            NavRequest.gardenWeek = false
+        }
+    }
     var anchorDay by rememberSaveable { mutableStateOf(today.toEpochDay()) }
     val anchor = LocalDate.ofEpochDay(anchorDay)
     val range = Periods.range(period, anchor)
@@ -168,6 +174,14 @@ fun GardenScreen() {
         )
         if (zoom) GardenZoom(records, boardSeed, period, theme) { zoom = false }
 
+        if (period == Period.WEEK) {
+            val report = remember(history, range) { uz.focuson.data.WeeklyReport.build(history, range.start, zone) }
+            if (report.focusedMs > 0 || report.withered > 0) Card("Haftalik hisobot") {
+                Text("${formatDuration(report.focusedMs)} fokus", color = C.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                uz.focuson.focus.weeklyLines(report).forEach { Text(it, color = C.muted, fontSize = 14.sp) }
+            }
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatTile("Fokus vaqti", formatHours(focused), Modifier.weight(1f))
             StatTile("O'sgan", "${grown.size}", Modifier.weight(1f))
@@ -684,4 +698,9 @@ private fun MiniStat(title: String, value: String, modifier: Modifier) {
         Text(title, color = C.muted, fontSize = 11.sp)
         Text(value, color = C.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
+}
+
+/** Asks the garden to open on this week (from the weekly report notification). */
+object NavRequest {
+    var gardenWeek by mutableStateOf(false)
 }

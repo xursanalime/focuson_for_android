@@ -171,6 +171,26 @@ object Notifications {
         runCatching { nm.notify(16, n) }
     }
 
+    fun showWeekly(context: Context, r: uz.focuson.data.WeeklyReport) {
+        val nm = NotificationManagerCompat.from(context)
+        if (!nm.areNotificationsEnabled()) return
+        val lines = weeklyLines(r)
+        val open = PendingIntent.getActivity(
+            context, 6,
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_OPEN, MainActivity.OPEN_WEEK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val n = NotificationCompat.Builder(context, CH_REMIND)
+            .setSmallIcon(R.drawable.ic_notif)
+            .setContentTitle("Hafta yakuni: ${formatDuration(r.focusedMs)} fokus")
+            .setContentText(lines.first())
+            .setStyle(NotificationCompat.BigTextStyle().bigText(lines.joinToString("\n")))
+            .setAutoCancel(true)
+            .setContentIntent(open)
+            .build()
+        runCatching { nm.notify(17, n) }
+    }
+
     fun showReminder(context: Context) {
         val nm = NotificationManagerCompat.from(context)
         if (!nm.areNotificationsEnabled()) return

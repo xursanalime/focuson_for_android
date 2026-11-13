@@ -54,6 +54,7 @@ object AppLimits {
     /** A real app came to the front. */
     fun onForeground(context: Context, pkg: String) {
         ctx = context.applicationContext
+        Store.applyDueLimits()
         handler.removeCallbacks(check)
         handler.removeCallbacks(warn)
         if (Store.limits.value[pkg] == null) {
