@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="blocker_description">Fokus vaqtida qaysi ilova ochilganini kuzatadi va bloklangan ilova o\'rniga to\'xtatish ekranini ko\'rsatadi. Ekrandagi matnni o\'qimaydi, hech narsani yubormaydi.</string>
+    <string name="widget_description">Bugungi o\'simliklar, fokus vaqti va seriya</string>
+</resources>
