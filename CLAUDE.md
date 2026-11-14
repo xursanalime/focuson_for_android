@@ -9,6 +9,25 @@ never copy Forest's name, icons, plant art or screens.
 - Build in stages; stop after each and ask before the next.
 - No login, accounts, network or telemetry. Data stays on the phone.
 
+## Layout (phone + Ubuntu)
+- `shared/src/` — code used by BOTH apps: data models, Periods, GardenTheme/Streaks, WeeklyReport,
+  Backup (file format + merge), SoundGenerator, weeklyLines, and the screens: PlantArt/PlantView,
+  GardenArt/GardenScreen, HomeScreen, ShopScreen, TagsScreen, Theme, Dial, Icons, Platform.kt
+  (FocusActions + LocalFocusActions, LocalBackHandler, settings widgets). Keep it free of android.*:
+  shared screens get platform work through `LocalFocusActions` and read state from `Store`.
+- `app/` — Android. Adds `../shared/src` via `sourceSets["main"].kotlin.srcDir`. Its own Store,
+  FocusController, blocking, limits, widget, Android settings. `AndroidActions` implements FocusActions.
+- `desktop/` — Ubuntu app, its own Gradle build (Compose Multiplatform 1.9.0, Kotlin 2.2.21), source
+  dirs `src` + `../shared/src`. Own `uz.focuson.data.Store` with the same API (JSON files in
+  ~/.local/share/focuson, override with FOCUSON_DATA_DIR / -Dfocuson.dataDir), `DesktopFocus`
+  (FocusActions, 1 s loop, reminder/weekly/auto-backup), notify-send, GNOME DND via gsettings
+  show-banners, javax.sound ambient sound, tray (`--tray` starts hidden), autostart .desktop.
+  No blocking or limits on the computer (the user said there is nothing to block).
+  Build/test: `cd desktop && ./gradlew test` (headless screenshots in desktop/build/screens via
+  ImageComposeScene). Install: `desktop/install.sh` → ~/.local/share/focuson-app + menu entry.
+- Backups merge both ways (phone ↔ computer): `Backup.mergeHistory` dedupes by start/end/plant;
+  coins stay per device, bought plants and tags are united.
+
 ## Tech
 - Native Kotlin + Jetpack Compose. AGP 9.1.0 (built-in Kotlin), Gradle 9.3.1, compose plugin 2.2.21,
   compileSdk/targetSdk 36, minSdk 26. Android SDK at ~/Android/Sdk. No emulator on this machine.

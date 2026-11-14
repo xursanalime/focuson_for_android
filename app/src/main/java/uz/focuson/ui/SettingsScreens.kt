@@ -207,7 +207,7 @@ fun SettingsScreen(onPickApps: (BlockMode) -> Unit, onPermissions: () -> Unit, o
             NavRow("Faylga saqlash", "Tarix, teglar, tangalar va o'simliklar") {
                 exportLauncher.launch("focuson-${java.time.LocalDate.now()}.json")
             }
-            NavRow("Fayldan tiklash", "Oldin saqlangan fayldan qaytarish") {
+            NavRow("Fayldan tiklash / birlashtirish", "Zaxira yoki kompyuterdagi Focus On faylini qo'shish") {
                 importLauncher.launch(arrayOf("application/json", "*/*"))
             }
             val last = Store.lastAutoBackup()
@@ -244,21 +244,25 @@ fun SettingsScreen(onPickApps: (BlockMode) -> Unit, onPermissions: () -> Unit, o
         onDismiss = { pickTime = false },
     )
     confirmImport?.let { uri ->
+        fun run(merge: Boolean) {
+            message = runCatching {
+                val text = context.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
+                val n = Store.importJson(text, merge)
+                if (merge) "Birlashtirildi: $n ta yangi o'simlik qo'shildi." else "Tiklandi."
+            }.getOrElse { "Bo'lmadi: ${it.message}" }
+            confirmImport = null
+        }
         AlertDialog(
             onDismissRequest = { confirmImport = null },
-            title = { Text("Fayldan tiklansinmi?") },
-            text = { Text("Hozirgi tarix, teglar va tangalar fayldagisi bilan almashtiriladi.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    message = runCatching {
-                        val text = context.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
-                        Store.importJson(text)
-                        "Tiklandi."
-                    }.getOrElse { "Tiklab bo'lmadi: ${it.message}" }
-                    confirmImport = null
-                }) { Text("Tiklash", color = C.danger) }
+            title = { Text("Faylni qanday qo'shamiz?") },
+            text = {
+                Text(
+                    "Birlashtirish: fayldagi o'simliklar (masalan kompyuterdagilar) telefondagilarga qo'shiladi, tangalar o'zgarmaydi.\n\n" +
+                        "Almashtirish: telefondagi hamma narsa fayldagisi bilan almashadi."
+                )
             },
-            dismissButton = { TextButton(onClick = { confirmImport = null }) { Text("Bekor qilish") } },
+            confirmButton = { TextButton(onClick = { run(merge = true) }) { Text("Birlashtirish") } },
+            dismissButton = { TextButton(onClick = { run(merge = false) }) { Text("Almashtirish", color = C.danger) } },
         )
     }
     message?.let { m ->

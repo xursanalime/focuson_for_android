@@ -73,6 +73,8 @@ fun HomeScreen(
     needsSetup: Boolean,
     onOpenPermissions: () -> Unit,
     onOpenShop: () -> Unit,
+    /** The computer has no app blocking, so it hides the blocking line. */
+    showBlocking: Boolean = true,
 ) {
     val actions = LocalFocusActions.current
     val active by Store.active.collectAsStateWithLifecycle()
@@ -280,7 +282,7 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-        Text(
+        if (showBlocking) Text(
             blockingLine(settings.blockingEnabled, settings.strict, settings.mode.name),
             color = C.muted, fontSize = 12.sp, textAlign = TextAlign.Center,
         )

@@ -317,31 +317,32 @@ object Store {
 
     // ---- Backup ----
 
-    fun exportJson(): String = JSONObject()
-        .put("app", "focuson")
-        .put("version", 1)
-        .put("history", SessionRecord.listToJson(_history.value))
-        .put("tags", JSONArray().apply { _tags.value.forEach { put(it.toJson()) } })
-        .put("coins", _coins.value)
-        .put("owned", JSONArray((_owned.value - Catalog.freeIds).toList()))
-        .toString(2)
+    fun exportJson(): String = Backup.write(_history.value, _tags.value, _coins.value, _owned.value, "android")
 
-    /** Replaces history, tags, coins and owned plants with the backup. Throws on a bad file. */
+    /**
+     * Brings in a backup (from this phone or from the computer). merge = true adds the other
+     * device's plants, tags and bought plants (coins stay as they are); merge = false replaces
+     * everything. Throws on a bad file. Returns how many sessions were new.
+     */
     @Synchronized
-    fun importJson(text: String) {
-        val o = JSONObject(text)
-        require(o.optString("app") == "focuson") { "Bu Focus On fayli emas" }
-        val history = SessionRecord.listFromJson(o.getJSONArray("history"))
-        val tagsArr = o.getJSONArray("tags")
-        val tags = (0 until tagsArr.length()).map { Tag.fromJson(tagsArr.getJSONObject(it)) }
-        val ownedArr = o.optJSONArray("owned") ?: JSONArray()
-        val owned = (0 until ownedArr.length()).map { ownedArr.getString(it) }.toSet()
-        saveHistory(history)
-        if (tags.isNotEmpty()) setTags(tags)
-        _coins.value = o.optInt("coins", 0)
-        _owned.value = Catalog.freeIds + owned
-        prefs.edit().putInt("coins", _coins.value).putStringSet("owned", owned).apply()
+    fun importJson(text: String, merge: Boolean = false): Int {
+        val p = Backup.parse(text)
+        val added: Int
+        if (merge) {
+            added = Backup.countNew(_history.value, p.history)
+            saveHistory(Backup.mergeHistory(_history.value, p.history))
+            setTags(Backup.mergeTags(_tags.value, p.tags))
+            _owned.value = _owned.value + p.owned
+        } else {
+            added = p.history.size
+            saveHistory(p.history)
+            if (p.tags.isNotEmpty()) setTags(p.tags)
+            _coins.value = p.coins
+            _owned.value = Catalog.freeIds + p.owned
+        }
+        prefs.edit().putInt("coins", _coins.value).putStringSet("owned", _owned.value - Catalog.freeIds).apply()
         updateStreak()
+        return added
     }
 }
 

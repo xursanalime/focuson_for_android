@@ -12,7 +12,16 @@ chalg'ituvchi ilovalar yopiladi. Login yo'q, internet kerak emas, hamma ma'lumot
 - Ilovalarga kunlik limit (limit tugasa ilova yopiladi, 5 daqiqalik ruxsat)
 - Bosh ekran vidjeti, tungi rejim, haftalik avtomatik zaxira (Download/FocusOn)
 
-## Yig'ish
+## Ubuntu versiyasi
+`desktop/` papkasida. Dizayn telefondagi bilan bir xil: kod `shared/` papkasida umumiy.
+Kompyuterda bloklash yo'q; taymer, bog', do'kon, statistika, tray, bildirishnomalar va
+eslatmalar bor. Telefon bilan zaxira fayl orqali birlashtiriladi.
+
+```bash
+cd desktop && ./install.sh
+```
+
+## Yig'ish (telefon)
 Kotlin + Jetpack Compose. Android SDK kerak.
 
 ```bash
