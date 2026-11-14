@@ -55,11 +55,18 @@ private enum class Tab(val title: String, val icon: ImageVector) {
     SETTINGS("Sozlamalar", AppIcons.Settings),
 }
 
-private fun loadIcon(): ImageBitmap {
-    val bytes = Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")!!.use { it.readBytes() }
-    // notify-send and the menu entry need the icon as a file
-    runCatching { if (!Notify.iconFile.exists()) Notify.iconFile.writeBytes(bytes) }
-    return org.jetbrains.skia.Image.makeFromEncoded(bytes).toComposeImageBitmap()
+private fun resource(name: String): ByteArray =
+    Thread.currentThread().contextClassLoader.getResourceAsStream(name)!!.use { it.readBytes() }
+
+private fun loadIcon(name: String): ImageBitmap =
+    org.jetbrains.skia.Image.makeFromEncoded(resource(name)).toComposeImageBitmap()
+
+/** notify-send needs the icon as a file; keep it the same as the app's current icon. */
+private fun writeNotifyIcon() {
+    runCatching {
+        val bytes = resource("icons/256.png")
+        if (!Notify.iconFile.exists() || !Notify.iconFile.readBytes().contentEquals(bytes)) Notify.iconFile.writeBytes(bytes)
+    }
 }
 
 fun main(args: Array<String>) = application {
@@ -67,7 +74,9 @@ fun main(args: Array<String>) = application {
     val active by Store.active.collectAsState()
     // "--tray" (used when the computer starts): stay in the panel until opened.
     var visible by remember { mutableStateOf(!(isTraySupported && "--tray" in args)) }
-    val icon = remember { BitmapPainter(loadIcon()) }
+    val icon = remember { writeNotifyIcon(); BitmapPainter(loadIcon("icons/256.png")) }
+    // the panel icon is tiny: the simple sprout version stays readable
+    val trayIcon = remember { BitmapPainter(loadIcon("icons/32.png")) }
     LaunchedEffect(Unit) { DesktopFocus.startLoop() }
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -81,7 +90,7 @@ fun main(args: Array<String>) = application {
     if (isTraySupported) {
         val s = active
         Tray(
-            icon = icon,
+            icon = trayIcon,
             tooltip = if (s == null) "Focus On" else
                 "${Catalog.byId(s.speciesId).name} o'smoqda · " +
                     (if (s.stopwatch) formatClock(now - s.startAt) else "${formatClock(s.endAt - now)} qoldi"),

@@ -25,6 +25,10 @@ never copy Forest's name, icons, plant art or screens.
   No blocking or limits on the computer (the user said there is nothing to block).
   Build/test: `cd desktop && ./gradlew test` (headless screenshots in desktop/build/screens via
   ImageComposeScene). Install: `desktop/install.sh` → ~/.local/share/focuson-app + menu entry.
+- App icon: drawn in code (`shared/.../AppIconArt.kt`, the app's own oak inside a timer ring).
+  `cd desktop && ./gradlew test --tests uz.focuson.IconGen` renders build/icons; copy desktop/*.png to
+  desktop/res/icons (+512 to res/icon.png) and android mipmap-*/ic_launcher_foreground.png to app/res.
+  Sizes ≤32 px use the simple sprout. Menu/nav icons are in `Icons.kt` (24 grid, 1.9 px lines).
 - Backups merge both ways (phone ↔ computer): `Backup.mergeHistory` dedupes by start/end/plant;
   coins stay per device, bought plants and tags are united.
 

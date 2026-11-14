@@ -193,7 +193,7 @@ object Autostart {
             Type=Application
             Name=Focus On
             Exec="$exe" --tray
-            Icon=${Notify.iconFile.absolutePath}
+            Icon=focuson
             X-GNOME-Autostart-enabled=true
             """.trimIndent() + "\n"
         )

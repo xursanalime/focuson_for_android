@@ -13,8 +13,13 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 cp -r "$SRC"/. "$DEST"/
 
-mkdir -p "$HOME/.local/share/icons/hicolor/512x512/apps" "$HOME/.local/share/applications"
-cp res/icon.png "$HOME/.local/share/icons/hicolor/512x512/apps/focuson.png"
+# app icon in every size (menu, dock, alt-tab)
+for s in 16 24 32 48 64 128 256 512; do
+    mkdir -p "$HOME/.local/share/icons/hicolor/${s}x${s}/apps"
+    cp "res/icons/$s.png" "$HOME/.local/share/icons/hicolor/${s}x${s}/apps/focuson.png"
+done
+mkdir -p "$HOME/.local/share/applications"
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
 cat > "$HOME/.local/share/applications/focuson.desktop" <<EOF
 [Desktop Entry]
 Type=Application
