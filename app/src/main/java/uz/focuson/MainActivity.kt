@@ -95,6 +95,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val mode by Store.settings.collectAsStateWithLifecycle()
             FocusTheme(mode.themeMode) {
+              androidx.compose.runtime.CompositionLocalProvider(
+                uz.focuson.ui.LocalFocusActions provides remember { AndroidActions(this@MainActivity) },
+                uz.focuson.ui.LocalBackHandler provides { cb -> androidx.activity.compose.BackHandler(onBack = cb) },
+              ) {
                 val dark = C.dark
                 androidx.compose.runtime.LaunchedEffect(dark) {
                     val transparent = android.graphics.Color.TRANSPARENT
@@ -162,6 +166,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+              }
             }
         }
     }

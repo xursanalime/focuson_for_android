@@ -91,7 +91,7 @@ class LogicTest {
 
     @Test fun soundIsAudibleAndBounded() {
         uz.focuson.data.Sound.entries.filter { it != uz.focuson.data.Sound.NONE }.forEach { snd ->
-            val g = uz.focuson.focus.AmbientPlayer.Generator(snd, 22050)
+            val g = uz.focuson.focus.SoundGenerator(snd, 22050)
             val samples = DoubleArray(22050 * 3) { g.next() }
             val tail = samples.drop(22050 * 2)
             val rms = kotlin.math.sqrt(tail.sumOf { it * it } / tail.size)

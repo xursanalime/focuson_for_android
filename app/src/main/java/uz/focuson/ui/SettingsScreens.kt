@@ -81,72 +81,6 @@ import uz.focuson.data.Store
 import uz.focuson.focus.Reminder
 
 @Composable
-fun ScreenScaffold(title: String, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    BackHandler(onBack = onBack)
-    Column(Modifier.fillMaxSize().background(C.background)) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Orqaga", tint = C.ink)
-            }
-            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = C.ink)
-        }
-        content()
-    }
-}
-
-@Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Text(
-        title, color = C.primaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-        modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp),
-    )
-    Column(
-        Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(C.card)
-            .padding(vertical = 4.dp),
-        content = content,
-    )
-}
-
-@Composable
-private fun SwitchRow(title: String, sub: String?, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled) { onChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = C.ink, fontSize = 16.sp)
-            if (sub != null) Text(sub, color = C.muted, fontSize = 13.sp)
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
-    }
-}
-
-@Composable
-private fun NavRow(title: String, sub: String?, enabled: Boolean = true, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = if (enabled) C.ink else C.muted, fontSize = 16.sp)
-            if (sub != null) Text(sub, color = C.muted, fontSize = 13.sp)
-        }
-        Text("›", color = C.muted, fontSize = 22.sp)
-    }
-}
-
-@Composable
 fun SettingsScreen(onPickApps: (BlockMode) -> Unit, onPermissions: () -> Unit, onTags: () -> Unit) {
     val context = LocalContext.current
     val s by Store.settings.collectAsStateWithLifecycle()
@@ -333,61 +267,6 @@ fun SettingsScreen(onPickApps: (BlockMode) -> Unit, onPermissions: () -> Unit, o
             text = { Text(m) },
             confirmButton = { TextButton(onClick = { message = null }) { Text("Yaxshi") } },
         )
-    }
-}
-
-@Composable
-private fun ChoiceDialog(
-    title: String, options: List<Int>, selected: Int, label: (Int) -> String,
-    onPick: (Int) -> Unit, onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
-                options.forEach { o ->
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(o) }.padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = o == selected, onClick = { onPick(o) })
-                        Text(label(o), color = C.ink, fontSize = 16.sp)
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Yopish") } },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TimeDialog(minuteOfDay: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberTimePickerState(minuteOfDay / 60, minuteOfDay % 60, is24Hour = true)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Eslatma vaqti") },
-        text = { TimePicker(state) },
-        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text("Saqlash") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Bekor qilish") } },
-    )
-}
-
-@Composable
-private fun ModeRow(title: String, sub: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = null, enabled = enabled, modifier = Modifier.padding(8.dp))
-        Column {
-            Text(title, color = if (enabled) C.ink else C.muted, fontSize = 16.sp)
-            if (sub.isNotEmpty()) Text(sub, color = C.muted, fontSize = 13.sp)
-        }
     }
 }
 

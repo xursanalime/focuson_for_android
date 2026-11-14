@@ -35,7 +35,13 @@ class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     private fun shot(name: String, mode: String = "light", content: @Composable () -> Unit) {
-        rule.setContent { FocusTheme(mode) { content() } }
+        rule.setContent {
+            FocusTheme(mode) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    uz.focuson.ui.LocalFocusActions provides uz.focuson.AndroidActions(rule.activity),
+                ) { content() }
+            }
+        }
         rule.waitForIdle()
         val view = rule.activity.window.decorView
         val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)

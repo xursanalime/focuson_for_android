@@ -1,6 +1,5 @@
 package uz.focuson.ui
 
-import android.util.LruCache
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -27,20 +26,37 @@ import kotlin.math.roundToInt
 /** Plants are costly to draw, so each (species, growth step, size) is drawn once and kept. */
 object PlantCache {
     private const val STEPS = 40
-    private val cache = object : LruCache<String, ImageBitmap>(40 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
+    private const val MAX_BYTES = 40L * 1024 * 1024
+    private var bytes = 0L
+    /** Least-recently-used first (access order), so the oldest pictures are dropped first. */
+    private val cache = object : LinkedHashMap<String, ImageBitmap>(64, 0.75f, true) {}
+
+    @Synchronized
+    private fun put(key: String, bmp: ImageBitmap) {
+        cache[key] = bmp
+        bytes += bmp.width.toLong() * bmp.height * 4
+        val it = cache.entries.iterator()
+        while (bytes > MAX_BYTES && it.hasNext()) {
+            val e = it.next()
+            if (e.key == key) continue
+            bytes -= e.value.width.toLong() * e.value.height * 4
+            it.remove()
+        }
     }
+
+    @Synchronized
+    private fun lookup(key: String): ImageBitmap? = cache[key]
 
     fun get(id: String, growth: Float, withered: Boolean, ground: Boolean, sizePx: Int, density: Density): ImageBitmap {
         val step = (growth.coerceIn(0f, 1f) * STEPS).roundToInt()
         val px = sizePx.coerceAtLeast(8)
         val key = "$id/$step/$withered/$ground/$px"
-        cache.get(key)?.let { return it }
+        lookup(key)?.let { return it }
         val bmp = ImageBitmap(px, px)
         CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(bmp), Size(px.toFloat(), px.toFloat())) {
             drawPlant(id, step / STEPS.toFloat(), withered, ground)
         }
-        cache.put(key, bmp)
+        put(key, bmp)
         return bmp
     }
 }

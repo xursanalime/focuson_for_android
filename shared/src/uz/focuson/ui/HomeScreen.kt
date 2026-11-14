@@ -41,7 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,7 +53,6 @@ import uz.focuson.data.Catalog
 import uz.focuson.data.SessionRecord
 import uz.focuson.data.Sound
 import uz.focuson.data.Store
-import uz.focuson.focus.FocusController
 import java.util.Calendar
 
 private val idlePhrases = listOf(
@@ -76,7 +74,7 @@ fun HomeScreen(
     onOpenPermissions: () -> Unit,
     onOpenShop: () -> Unit,
 ) {
-    val context = LocalContext.current
+    val actions = LocalFocusActions.current
     val active by Store.active.collectAsStateWithLifecycle()
     val settings by Store.settings.collectAsStateWithLifecycle()
     val history by Store.history.collectAsStateWithLifecycle()
@@ -88,7 +86,7 @@ fun HomeScreen(
     LaunchedEffect(active) {
         while (active != null) {
             now = System.currentTimeMillis()
-            FocusController.check(context)
+            actions.check()
             delay(250)
         }
     }
@@ -182,7 +180,7 @@ fun HomeScreen(
                 delay(500)
             }
             breakNow = System.currentTimeMillis()
-            if (breakEnd in 1..breakNow) uz.focuson.focus.BreakTimer.finished(context)
+            if (breakEnd in 1..breakNow) actions.breakFinished()
         }
         if (!running && breakEnd > breakNow) {
             Spacer(Modifier.height(8.dp))
@@ -198,7 +196,7 @@ fun HomeScreen(
                     "Tanaffus: ${formatClock(breakEnd - breakNow)} qoldi. Dam oling.",
                     color = C.ink, fontSize = 14.sp, modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { uz.focuson.focus.BreakTimer.stop(context) }) { Text("Tugatish") }
+                TextButton(onClick = { actions.stopBreak() }) { Text("Tugatish") }
             }
         }
 
@@ -260,14 +258,14 @@ fun HomeScreen(
         when {
             !running -> Button(
                 onClick = {
-                    FocusController.start(context, settings.minutes, settings.speciesId, settings.tagId, settings.stopwatch)
+                    actions.start(settings.minutes, settings.speciesId, settings.tagId, settings.stopwatch)
                 },
                 modifier = Modifier.width(200.dp).height(50.dp),
                 shape = RoundedCornerShape(27.dp),
             ) { Text("Ekish", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) }
             stopwatch -> Button(
                 onClick = {
-                    if (elapsed >= ActiveSession.STOPWATCH_MIN_MS) FocusController.stopStopwatch(context)
+                    if (elapsed >= ActiveSession.STOPWATCH_MIN_MS) actions.stopStopwatch()
                     else confirmGiveUp = true
                 },
                 modifier = Modifier.width(200.dp).height(50.dp),
@@ -306,7 +304,7 @@ fun HomeScreen(
     )
     if (confirmGiveUp) GiveUpDialog(
         stopwatch = stopwatch,
-        onConfirm = { confirmGiveUp = false; FocusController.giveUp(context) },
+        onConfirm = { confirmGiveUp = false; actions.giveUp() },
         onDismiss = { confirmGiveUp = false },
     )
     result?.let { r -> ResultDialog(r, onDismiss = { Store.lastResult.value = null; Store.newThemes.value = emptyList() }) }
@@ -538,12 +536,12 @@ private fun ResultDialog(r: SessionRecord, onDismiss: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(18.dp))
-            val context = LocalContext.current
+            val actions = LocalFocusActions.current
             val st by Store.settings.collectAsStateWithLifecycle()
             val onBreak by Store.breakEnd.collectAsStateWithLifecycle()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (r.success && onBreak == 0L) OutlinedButton(
-                    onClick = { uz.focuson.focus.BreakTimer.start(context, st.breakMinutes); onDismiss() },
+                    onClick = { actions.startBreak(st.breakMinutes); onDismiss() },
                     shape = RoundedCornerShape(22.dp),
                 ) { Text("Tanaffus ${st.breakMinutes} daq") }
                 Button(onClick = onDismiss, shape = RoundedCornerShape(22.dp)) {

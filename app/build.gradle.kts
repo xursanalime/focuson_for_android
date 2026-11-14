@@ -41,6 +41,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { compose = true }
+    // Code shared with the Ubuntu app (../desktop): plants, garden, focus screen, colours.
+    sourceSets["main"].kotlin.srcDir("../shared/src")
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
